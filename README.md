@@ -52,7 +52,7 @@ template <> struct KdComparator<Entry>
     }
 
 private:
-    const std::vector<Entries>& entries;
+    const std::vector<Entry>& entries;
     const KdIndex dimension;
 };
 ```

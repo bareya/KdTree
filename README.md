@@ -57,4 +57,4 @@ private:
 };
 ```
 
-![KdTree_v1](images/kdtree_v1.png "KdTree v1")
+![KdTree_v1](images/KdTree_v1.png "KdTree v1")

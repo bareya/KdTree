@@ -1,5 +1,7 @@
 # Kd Tree
 
+## Version 1
+
 Fun project with basic implementation of KdTree using templates. Current implementation is based on searching median through `nth_element` call.
 
 To instantiate `KdTree`:

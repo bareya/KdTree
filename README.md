@@ -41,7 +41,7 @@ template<> struct KdMax<Entry>
 ```cpp
 template <> struct KdComparator<Entry>
 {
-    KdComparator(const std::vector<Point2D>& e, KdIndex d)
+    KdComparator(const std::vector<Entry>& e, KdIndex d)
         : entries(e)
         , dimension(d)
     {}
@@ -52,7 +52,7 @@ template <> struct KdComparator<Entry>
     }
 
 private:
-    const std::vector<Entries>& entries;
+    const std::vector<Entry>& entries;
     const KdIndex dimension;
 };
 ```

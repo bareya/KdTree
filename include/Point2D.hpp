@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <random>
+#include <ostream>
 
 struct Point2D
 {
@@ -14,6 +15,12 @@ struct Point2D
 
     float x, y;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Point2D& point)
+{
+    os << point.x << " " << point.y;
+    return os;
+}
 
 template <> struct KdMin<Point2D>
 {

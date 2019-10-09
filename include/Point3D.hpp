@@ -2,6 +2,7 @@
 #define POINT3D_H
 
 #include <vector>
+#include <ostream>
 
 struct Point3D
 {
@@ -14,6 +15,12 @@ struct Point3D
 
     float x, y, z;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Point3D& point)
+{
+    os << point.x << " " << point.y << " " << point.z;
+    return os;
+}
 
 template <> struct KdMin<Point3D>
 {

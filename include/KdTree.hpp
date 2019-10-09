@@ -68,7 +68,7 @@ public:
 
     const KdRange& GetRange() const { return range_; }
 
-    void SetSplit(KdIndex split) { split = split; }
+    void SetSplit(KdIndex split) { split_ = split; }
     const KdIndex& GetSplit() const { return split_; }
 
     void SetChildren(KdNode* lower, KdNode* upper)

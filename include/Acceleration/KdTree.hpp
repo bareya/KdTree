@@ -47,7 +47,7 @@ struct KdRange
     KdIndex Size() const { return end - beg; }
     KdIndex Middle() const { return beg + Size() / 2_kdi; }
 
-    KdRange GetLower() const { return KdRange{beg, Middle()}; }
+    KdRange GetLower() const { return KdRange{beg, Middle() - 1}; }
     KdRange GetUpper() const { return KdRange{Middle(), end}; }
 
     KdIndex beg;
@@ -81,8 +81,8 @@ public:
     bool IsLeaf() const { return false; }
 
 private:
-    KdRange range_;
-    KdIndex split_;
+    KdRange range_; // keeps range of points
+    KdIndex split_; // index where split was performed
 
     KdNode* lower_{};
     KdNode* upper_{};
@@ -91,7 +91,8 @@ private:
 ///
 ///
 ///
-template <typename T, int _Dim> struct KdTree
+template <typename T, int _Dim> 
+struct KdTree
 {
     using value_type = T;
 
@@ -132,8 +133,8 @@ template <typename T, int _Dim> struct KdTree
         stack.emplace_back(root, 0);
 
         // sortable lookup array, filled with indices
-        std::vector<KdIndex> index_lookup(num_entries, 0_kdi);
-        std::iota(index_lookup.begin(), index_lookup.end(), 0);
+        index_lookup_.resize(num_entries);
+        std::iota(index_lookup_.begin(), index_lookup_.end(), 0);
 
         while (!stack.empty())
         {
@@ -158,11 +159,12 @@ template <typename T, int _Dim> struct KdTree
             // partial sort
             const KdComparator<T> dim_cmp{entries, stack_entry.dimension};
             const KdIndex range_middle = range.Middle();
-            std::nth_element(index_lookup.begin() + range.beg, index_lookup.begin() + range_middle,
-                             index_lookup.begin() + range.end, dim_cmp);
+            std::nth_element(index_lookup_.begin() + range.beg, 
+                             index_lookup_.begin() + range_middle,
+                             index_lookup_.begin() + range.end, dim_cmp);
 
             // update split to median
-            node->SetSplit(index_lookup[range_middle]);
+            node->SetSplit(index_lookup_[range_middle]);
 
             // Create lower and upper child
             KdNode* lower_node = AppendNode(range.GetLower());
@@ -182,7 +184,8 @@ template <typename T, int _Dim> struct KdTree
     const T& GetMax() const { return max_; }
 
 private:
-    template <typename _UINT> _UINT RoundToPower2(_UINT n) const
+    template <typename _UINT> 
+    _UINT RoundToPower2(_UINT n) const
     {
         // decrement so only less significant bits are filled
         // fill the bits
@@ -196,7 +199,8 @@ private:
         return ++n;
     }
 
-    template <typename _Func> T ComputeBound(const std::vector<T>& entries, const KdRange& range, _Func func) const
+    template <typename _Func> 
+    T ComputeBound(const std::vector<T>& entries, const KdRange& range, _Func func) const
     {
         const auto num_entries = range.Size();
         if (num_entries < 1)
@@ -213,7 +217,8 @@ private:
         return bound_entry;
     }
 
-    template <class... _Args> KdNode* AppendNode(_Args&&... args)
+    template <typename... _Args> 
+    KdNode* AppendNode(_Args&&... args)
     {
         nodes_.emplace_back(args...);
         return &nodes_.back();
@@ -223,6 +228,7 @@ private:
     T max_;
 
     std::vector<KdNode> nodes_;
+    std::vector<KdIndex> index_lookup_;
 };
 
 #endif // KDTREE_H

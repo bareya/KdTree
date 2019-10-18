@@ -1,8 +1,8 @@
-#ifndef MATH_AABBOX_H
-#define MATH_AABBOX_H
+#ifndef LINEAR_AABBOX_H
+#define LINEAR_AABBOX_H
 
 #include "Vector.hpp"
-#include "Bound.hpp"
+#include <Primitive/Bound.hpp>
 
 ///
 /// 2D and 3D Axis Aligned Bounding Box

@@ -1,7 +1,7 @@
 #ifndef RANDOM_VECTOR_H
 #define RANDOM_VECTOR_H
 
-#include <Primitive/Vector.hpp>
+#include <Linear/Vector.hpp>
 
 #include <random>
 #include <vector>

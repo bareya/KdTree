@@ -1,7 +1,7 @@
-#ifndef MATH_VECTOR_HPP
-#define MATH_VECTOR_HPP
+#ifndef LINEAR_VECTOR_HPP
+#define LINEAR_VECTOR_HPP
 
-#include "Types.hpp"
+#include <Primitive/Types.hpp>
 
 ///
 ///
@@ -178,4 +178,4 @@ constexpr Vector3 max(const Vector3& a, const Vector3& b)
 using Vector2Array = std::vector<Vector2>;
 using Vector3Array = std::vector<Vector3>;
 
-#endif // MATH_VECTOR_HPP
+#endif // LINEAR_VECTOR_HPP

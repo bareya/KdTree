@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_POINT_CLOUD_HPP
 #define GEOMETRY_POINT_CLOUD_HPP
 
-#include <Primitive/Vector.hpp>
+#include <Linear/Vector.hpp>
 
 class PointCloud
 {

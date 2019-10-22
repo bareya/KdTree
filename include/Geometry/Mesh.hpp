@@ -10,57 +10,81 @@
 #include <memory>
 
 ///
-///
+/// Immutable Mesh
 ///
 class Mesh
 {
 public:
-    using Rank = MeshAttrib::Rank;
+    using Rank = MeshAttribRank;
     using Storage = MeshAttrib::Storage;
 
-    Mesh(Vector3Array&& positions, IndexArray&& counts, IndexArray&& indices, IndexArray&& offsets);
-    Mesh(Vector3Array&& positions, IndexArray&& counts, IndexArray&& indices);
+    using AttribPtr = std::unique_ptr<MeshAttrib>;
+    using AttribMap = std::map<std::string, AttribPtr>;
 
-    //Mesh Copy(const Mesh& mesh) const { return Mesh(mesh); }
-
-    const Vector3& GetVertex(Index vertex) const { return positions_[vertex]; }
-    const Vector3& GetVertex(Index polygon, Index vertex) const { return positions_[offsets_[polygon] + vertex]; }
-
-    Index NumPoints() const { return static_cast<Index>(positions_.size()); }
-    Index NumPolygons() const { return static_cast<Index>(counts_.size()); }
-    Index NumPolygonVertices(Index polygon) const { return counts_[polygon]; }
-
-    const AABBox3& GetBounds() const { return bbox_; }
-
-    template<typename T>
-    MeshAttrib* CreateAttribute(const char* name, Rank rank, Storage storage)
+    Mesh(Vector3Array&& position, IndexArray&& poly_vertex_count, IndexArray&& vertex_point_index)
     {
-        switch(rank)
+        // position
+        auto position_attrib = MeshVector3Attrib::Create(*this, Rank::Point, std::move(position));
+        position_ = position_attrib.get();
+        auto position_it = point_attribs_.emplace(MeshAttribNames::Position, std::move(position_attrib));
+
+        // poly vertex count
+        auto poly_vertex_count_attrib = MeshIndexAttrib::Create(*this, Rank::Polygon, std::move(poly_vertex_count));
+        poly_vertex_count_ = poly_vertex_count_attrib.get();
+        polygon_attribs_.emplace(MeshAttribNames::PolyVertexCount, std::move(poly_vertex_count_attrib));
+
+        // vertex point index
+        auto vertex_point_index_attrib = MeshIndexAttrib::Create(*this, Rank::Vertex, std::move(vertex_point_index));
+        vertex_point_index_ = vertex_point_index_attrib.get();
+        vertex_attribs_.emplace(MeshAttribNames::VertexPointIndex, std::move(vertex_point_index_attrib));
+
+        // compute offset
+        IndexArray poly_offsets;
+        poly_offsets.reserve(NumPolygons());
+        for (Index polygon{}, offset{}; polygon < NumPolygons(); offset+=poly_vertex_count_->Get(polygon), ++polygon)
         {
-            case Rank::Point:
-            {
-                auto new_attrib = std::make_unique<T>(*this, rank, storage, NumPoints());
-                auto it = point_attribs_.emplace(name, std::move(new_attrib));
-                return it.first->second.get();
-            }
-            case Rank::Polygon:
-            {
-                auto new_attrib = std::make_unique<T>(*this, rank, storage, NumPolygons());
-                auto it = polygon_attribs_.emplace(name, std::move(new_attrib));
-                return it.first->second.get();
-            }
-            case Rank::Mesh:
-            {
-                auto new_attrib = std::make_unique<T>(*this, rank, storage, 1);
-                auto it = mesh_attribs_.emplace(name, std::move(new_attrib));
-                return it.first->second.get();
-            }
-            default:
-            {
-                return nullptr;
-            }
+            poly_offsets.emplace_back(offset);
         }
+        auto poly_vertex_offset_attrib = MeshIndexAttrib::Create(*this, Rank::Polygon, std::move(poly_offsets));
+        poly_vertex_offset_ = poly_vertex_offset_attrib.get();
+        polygon_attribs_.emplace(MeshAttribNames::PolyVertexOffset, std::move(poly_vertex_offset_attrib));
     }
+
+    // General information
+    Index NumPoints() const { return position_->GetSize(); }
+    Index NumVertices() const { return vertex_point_index_->GetSize(); }
+    Index NumPolygons() const { return poly_vertex_count_->GetSize(); }
+    Index NumPolygonVertices(Index polygon) const { return poly_vertex_count_->Get(polygon); }
+
+    // position accessor
+    const Vector3& GetPosition(Index point) const { return position_->Get(point); }
+
+    // Custom Mesh Attributes
+    template <typename T>
+    T* CreatePointAttrib(const char* name)
+    {
+        return CreateAttrib<T>(name, Mesh::Rank::Point, NumPoints());
+    }
+
+    template <typename T>
+    T* CreateVertexAttrib(const char* name)
+    {
+        return CreateAttrib<T>(name, Mesh::Rank::Vertex, NumVertices());
+    }
+
+    template <typename T>
+    T* CreatePolygonAttrib(const char* name)
+    {
+        return CreateAttrib<T>(name, Mesh::Rank::Polygon, NumPolygons());
+    }
+
+    template <typename T>
+    T* CreateMeshAttrib(const char* name)
+    {
+        return CreateAttrib<T>(name, Mesh::Rank::Mesh, 1);
+    }
+
+    MeshAttrib* FindAttrib(const char* name, Rank rank);
 
 private:
     Mesh(const Mesh&) = default;
@@ -69,49 +93,84 @@ private:
     Mesh& operator=(const Mesh&) = default;
     Mesh& operator=(Mesh&&) = default;
 
-    AABBox3 ComputeBBox() const
+    AttribMap& GetAttribMap(Rank rank);
+
+    template <typename T>
+    T* CreateAttrib(const char* name, Rank rank, Index size)
     {
-        auto bbox = AABBox3{Vector3{REAL_MAX}, Vector3{REAL_MIN}};
-        for(const auto&vertex : positions_)
+        // find existing, might return nullptr
+        auto found_attrib = FindAttrib(name, rank);
+        if (found_attrib) { return dynamic_cast<T*>(found_attrib); }
+
+        // create new
+        auto new_attrib = std::make_unique<T>(*this, rank, size);
+        auto new_attrib_ptr = new_attrib.get();
+
+        switch (rank)
         {
-            bbox = bbox_.Union(vertex);
+        case Rank::Point:
+        {
+            point_attribs_.emplace(name, std::move(new_attrib));
+            return new_attrib_ptr;
         }
-        return bbox;
+        case Rank::Vertex:
+        {
+            vertex_attribs_.emplace(name, std::move(new_attrib));
+            return new_attrib_ptr;
+        }
+        case Rank::Polygon:
+        {
+            polygon_attribs_.emplace(name, std::move(new_attrib));
+            return new_attrib_ptr;
+        }
+        case Rank::Mesh:
+        {
+            mesh_attribs_.emplace(name, std::move(new_attrib));
+            return new_attrib_ptr;
+        }
+        default:
+        {
+            return nullptr;
+        }
+        }
     }
 
-    AABBox3 bbox_;
+    // cached handles
+    MeshVector3Attrib* position_{};
+    MeshIndexAttrib* poly_vertex_count_{};
+    MeshIndexAttrib* poly_vertex_offset_{};
+    MeshIndexAttrib* vertex_point_index_{};
 
-    Vector3Array positions_;
-    IndexArray counts_;
-    IndexArray vertices_;
-    IndexArray offsets_;
-
-    std::map<std::string, std::unique_ptr<MeshAttrib>> point_attribs_;
-    std::map<std::string, std::unique_ptr<MeshAttrib>> polygon_attribs_;
-    std::map<std::string, std::unique_ptr<MeshAttrib>> mesh_attribs_;
+    // attributes
+    AttribMap point_attribs_;
+    AttribMap vertex_attribs_;
+    AttribMap polygon_attribs_;
+    AttribMap mesh_attribs_;
 };
 
-Mesh::Mesh(Vector3Array&& positions, IndexArray&& counts, IndexArray&& indices, IndexArray&& offsets)
-    : positions_(std::move(positions))
-    , counts_(std::move(counts))
-    , vertices_(std::move(indices))
-    , offsets_(std::move(offsets))
+inline Mesh::AttribMap& Mesh::GetAttribMap(Mesh::Rank rank)
 {
-    bbox_ = ComputeBBox();
+    switch (rank)
+    {
+    case Rank::Point:
+        return point_attribs_;
+    case Rank::Vertex:
+        return vertex_attribs_;
+    case Rank::Polygon:
+        return polygon_attribs_;
+    case Rank::Mesh:
+        return mesh_attribs_;
+    default:
+        throw std::runtime_error("Unrechable block reached!");
+    }
 }
 
-Mesh::Mesh(Vector3Array&& positions, IndexArray&& counts, IndexArray&& indices)
-    : positions_(std::move(positions))
-    , counts_(std::move(counts))
-    , vertices_(std::move(indices))
+inline MeshAttrib* Mesh::FindAttrib(const char* name, Mesh::Rank rank)
 {
-    auto num_polygons = NumPolygons();
-    offsets_.reserve(num_polygons);
-    for (Index poly{}, off{}; poly < num_polygons; off += counts_[poly], ++poly)
-    {
-        offsets_.push_back(off);
-    }
-    bbox_ = ComputeBBox();
+    auto& attrib_map = GetAttribMap(rank);
+    auto attrib_it = attrib_map.find(name);
+    if (attrib_it == attrib_map.end()) { return nullptr; }
+    return attrib_it->second.get();
 }
 
 #endif // GEOMETRY_MESH_HPP

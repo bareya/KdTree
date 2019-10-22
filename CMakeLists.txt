@@ -12,18 +12,21 @@ target_include_directories(KdTree
 target_sources(KdTree INTERFACE
         # Primitives
         ${CMAKE_CURRENT_SOURCE_DIR}/include/Primitive/Types.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/Primitive/Vector.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/Primitive/Bound.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/Primitive/Range.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/Primitive/AABBox.hpp
+
+        # Linear
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Linear/Vector.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Linear/AABBox.hpp
 
         # Geometry
         ${CMAKE_CURRENT_SOURCE_DIR}/include/Geometry/Mesh.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Geometry/MeshAttrib.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Geometry/MeshOp.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/Geometry/PointCloud.hpp
 
         # Sampling
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/Random/Vector.hpp
-
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Sampling/Vector.hpp
 
         # Acceleration
         ${CMAKE_CURRENT_SOURCE_DIR}/include/Acceleration/PointKdTree.hpp

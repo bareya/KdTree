@@ -34,7 +34,38 @@ public:
 class MeshNormalOp : public MeshOp
 {
 public:
-    Status Run(Mesh& mesh) override { return Status::Success; }
+    MeshNormalOp(MeshAttribRank rank = MeshAttribRank::Polygon)
+        : MeshOp()
+        , rank_(rank)
+    {
+    }
+
+    Status Run(Mesh& mesh) override
+    {
+        normal_attrib = mesh.CreatePolygonAttrib<MeshVector3Attrib>(MeshAttribNames::Normal);
+
+        for (Index i{}; i < mesh.NumPolygons(); ++i)
+        {
+            auto num_vertices = mesh.NumPolygonVertices(i);
+            if (num_vertices < 3) continue;
+
+            const auto& p0 = mesh.GetPosition(i, 0);
+            const auto& p1 = mesh.GetPosition(i, 1);
+            const auto& p2 = mesh.GetPosition(i, 2);
+
+            auto v01 = p0 - p1;
+            auto v21 = p2 - p1;
+            
+        }
+
+        return Status::Success;
+    }
+
+    // cached handle
+    MeshVector3Attrib* normal_attrib{};
+
+private:
+    MeshAttribRank rank_;
 };
 
 ///

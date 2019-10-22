@@ -11,7 +11,7 @@ class Vector2
 public:
     constexpr static Index DIM = 2;
 
-    explicit Vector2(Real vv= 0.0_r)
+    explicit Vector2(Real vv = 0.0_r)
         : xyz{vv, vv}
     {
     }
@@ -67,7 +67,7 @@ public:
     constexpr const Real& y() const { return xyz[1]; }
 
     bool operator<=(const Vector2& rhs) const
-    { 
+    {
         if (x() > rhs.x()) return false;
         return y() > rhs.y() ? false : true;
     }
@@ -153,14 +153,9 @@ private:
 ///
 ///
 
-constexpr Vector2 min(const Vector2& a, const Vector2& b)
-{
-    return {min(a.x(), b.x()), min(a.y(), b.y())};
-}
+constexpr Vector2 min(const Vector2& a, const Vector2& b) { return {min(a.x(), b.x()), min(a.y(), b.y())}; }
 
-constexpr Vector2 max(const Vector2& a, const Vector2& b) {
-    return {max(a.x(), b.x()), max(a.y(), b.y())};
-}
+constexpr Vector2 max(const Vector2& a, const Vector2& b) { return {max(a.x(), b.x()), max(a.y(), b.y())}; }
 
 constexpr Vector3 min(const Vector3& a, const Vector3 b)
 {
@@ -170,6 +165,22 @@ constexpr Vector3 min(const Vector3& a, const Vector3 b)
 constexpr Vector3 max(const Vector3& a, const Vector3& b)
 {
     return {max(a.x(), b.x()), max(a.y(), b.y()), max(a.z(), b.z())};
+}
+
+constexpr Real dot(const Vector3& a, const Vector3& b) 
+{ 
+    return a.x() * b.x() + a.y() * b.y() + a.z() * b.z(); 
+}
+
+constexpr Vector3 corss(const Vector3& a, const Vector3& b)
+{
+    return {a.y() * b.z() - a.z() * b.y(), a.z() * b.x() - a.x() * b.z(), a.x() * b.y() - a.y() * b.x()};
+}
+
+inline Vector3 normalize(const Vector3& v)
+{
+    auto sqr = sqrt(dot(v, v));
+    return v / sqr;
 }
 
 ///

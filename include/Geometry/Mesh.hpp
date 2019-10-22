@@ -15,37 +15,34 @@
 class Mesh
 {
 public:
-    using Rank = MeshAttribRank;
-    using Storage = MeshAttrib::Storage;
-
-    using AttribPtr = std::unique_ptr<MeshAttrib>;
-    using AttribMap = std::map<std::string, AttribPtr>;
-
     Mesh(Vector3Array&& position, IndexArray&& poly_vertex_count, IndexArray&& vertex_point_index)
     {
         // position
-        auto position_attrib = MeshVector3Attrib::Create(*this, Rank::Point, std::move(position));
+        auto position_attrib = MeshVector3Attrib::Create(*this, MeshAttribRank::Point, std::move(position));
         position_ = position_attrib.get();
         auto position_it = point_attribs_.emplace(MeshAttribNames::Position, std::move(position_attrib));
 
         // poly vertex count
-        auto poly_vertex_count_attrib = MeshIndexAttrib::Create(*this, Rank::Polygon, std::move(poly_vertex_count));
+        auto poly_vertex_count_attrib =
+            MeshIndexAttrib::Create(*this, MeshAttribRank::Polygon, std::move(poly_vertex_count));
         poly_vertex_count_ = poly_vertex_count_attrib.get();
         polygon_attribs_.emplace(MeshAttribNames::PolyVertexCount, std::move(poly_vertex_count_attrib));
 
         // vertex point index
-        auto vertex_point_index_attrib = MeshIndexAttrib::Create(*this, Rank::Vertex, std::move(vertex_point_index));
+        auto vertex_point_index_attrib =
+            MeshIndexAttrib::Create(*this, MeshAttribRank::Vertex, std::move(vertex_point_index));
         vertex_point_index_ = vertex_point_index_attrib.get();
         vertex_attribs_.emplace(MeshAttribNames::VertexPointIndex, std::move(vertex_point_index_attrib));
 
         // compute offset
         IndexArray poly_offsets;
         poly_offsets.reserve(NumPolygons());
-        for (Index polygon{}, offset{}; polygon < NumPolygons(); offset+=poly_vertex_count_->Get(polygon), ++polygon)
+        for (Index polygon{}, offset{}; polygon < NumPolygons(); offset += poly_vertex_count_->Get(polygon), ++polygon)
         {
             poly_offsets.emplace_back(offset);
         }
-        auto poly_vertex_offset_attrib = MeshIndexAttrib::Create(*this, Rank::Polygon, std::move(poly_offsets));
+        auto poly_vertex_offset_attrib =
+            MeshIndexAttrib::Create(*this, MeshAttribRank::Polygon, std::move(poly_offsets));
         poly_vertex_offset_ = poly_vertex_offset_attrib.get();
         polygon_attribs_.emplace(MeshAttribNames::PolyVertexOffset, std::move(poly_vertex_offset_attrib));
     }
@@ -58,33 +55,39 @@ public:
 
     // position accessor
     const Vector3& GetPosition(Index point) const { return position_->Get(point); }
+    const Vector3& GetPosition(Index polygon, Index vertex) const 
+    { 
+        assert(polygon != NumPolygons());
+        const Index point_offset = poly_vertex_offset_->Get(polygon) + vertex;
+        return position_->Get(point_offset);
+    }
 
     // Custom Mesh Attributes
     template <typename T>
     T* CreatePointAttrib(const char* name)
     {
-        return CreateAttrib<T>(name, Mesh::Rank::Point, NumPoints());
+        return CreateAttrib<T>(name, Mesh::MeshAttribRank::Point, NumPoints());
     }
 
     template <typename T>
     T* CreateVertexAttrib(const char* name)
     {
-        return CreateAttrib<T>(name, Mesh::Rank::Vertex, NumVertices());
+        return CreateAttrib<T>(name, Mesh::MeshAttribRank::Vertex, NumVertices());
     }
 
     template <typename T>
     T* CreatePolygonAttrib(const char* name)
     {
-        return CreateAttrib<T>(name, Mesh::Rank::Polygon, NumPolygons());
+        return CreateAttrib<T>(name, MeshAttribRank::Polygon, NumPolygons());
     }
 
     template <typename T>
     T* CreateMeshAttrib(const char* name)
     {
-        return CreateAttrib<T>(name, Mesh::Rank::Mesh, 1);
+        return CreateAttrib<T>(name, MeshAttribRank::Mesh, 1);
     }
 
-    MeshAttrib* FindAttrib(const char* name, Rank rank);
+    MeshAttrib* FindAttrib(const char* name, MeshAttribRank rank);
 
 private:
     Mesh(const Mesh&) = default;
@@ -93,10 +96,10 @@ private:
     Mesh& operator=(const Mesh&) = default;
     Mesh& operator=(Mesh&&) = default;
 
-    AttribMap& GetAttribMap(Rank rank);
+    MeshAttribMap& GetAttribMap(MeshAttribRank rank);
 
     template <typename T>
-    T* CreateAttrib(const char* name, Rank rank, Index size)
+    T* CreateAttrib(const char* name, MeshAttribRank rank, Index size)
     {
         // find existing, might return nullptr
         auto found_attrib = FindAttrib(name, rank);
@@ -108,22 +111,22 @@ private:
 
         switch (rank)
         {
-        case Rank::Point:
+        case MeshAttribRank::Point:
         {
             point_attribs_.emplace(name, std::move(new_attrib));
             return new_attrib_ptr;
         }
-        case Rank::Vertex:
+        case MeshAttribRank::Vertex:
         {
             vertex_attribs_.emplace(name, std::move(new_attrib));
             return new_attrib_ptr;
         }
-        case Rank::Polygon:
+        case MeshAttribRank::Polygon:
         {
             polygon_attribs_.emplace(name, std::move(new_attrib));
             return new_attrib_ptr;
         }
-        case Rank::Mesh:
+        case MeshAttribRank::Mesh:
         {
             mesh_attribs_.emplace(name, std::move(new_attrib));
             return new_attrib_ptr;
@@ -142,30 +145,30 @@ private:
     MeshIndexAttrib* vertex_point_index_{};
 
     // attributes
-    AttribMap point_attribs_;
-    AttribMap vertex_attribs_;
-    AttribMap polygon_attribs_;
-    AttribMap mesh_attribs_;
+    MeshAttribMap point_attribs_;
+    MeshAttribMap vertex_attribs_;
+    MeshAttribMap polygon_attribs_;
+    MeshAttribMap mesh_attribs_;
 };
 
-inline Mesh::AttribMap& Mesh::GetAttribMap(Mesh::Rank rank)
+inline MeshAttribMap& Mesh::GetAttribMap(MeshAttribRank rank)
 {
     switch (rank)
     {
-    case Rank::Point:
+    case MeshAttribRank::Point:
         return point_attribs_;
-    case Rank::Vertex:
+    case MeshAttribRank::Vertex:
         return vertex_attribs_;
-    case Rank::Polygon:
+    case MeshAttribRank::Polygon:
         return polygon_attribs_;
-    case Rank::Mesh:
+    case MeshAttribRank::Mesh:
         return mesh_attribs_;
     default:
         throw std::runtime_error("Unrechable block reached!");
     }
 }
 
-inline MeshAttrib* Mesh::FindAttrib(const char* name, Mesh::Rank rank)
+inline MeshAttrib* Mesh::FindAttrib(const char* name, MeshAttribRank rank)
 {
     auto& attrib_map = GetAttribMap(rank);
     auto attrib_it = attrib_map.find(name);

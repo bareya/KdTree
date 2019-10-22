@@ -16,34 +16,34 @@ enum class MeshAttribRank
     Mesh
 };
 
+enum class MeshAttribStorage
+{
+    Real,
+    Index,
+    Vector2,
+    Vector3
+};
+
+enum class MeshAttribAccess
+{
+    Private,
+    Public
+};
+
 ///
 ///
 ///
 class MeshAttrib
 {
 public:
-    enum class Storage
-    {
-        Real,
-        Index,
-        Vector2,
-        Vector3
-    };
-
-    enum class Access
-    {
-        Private,
-        Public
-    };
-
     virtual ~MeshAttrib() = default;
 
     MeshAttribRank GetRank() const { return rank_; }
-    Storage GetStorage() const { return storage_; }
+    MeshAttribStorage GetStorage() const { return storage_; }
     Index GetSize() const { return size_; }
 
 protected:
-    MeshAttrib(Mesh& mesh, MeshAttribRank rank, Storage storage, Index size)
+    MeshAttrib(Mesh& mesh, MeshAttribRank rank, MeshAttribStorage storage, Index size)
         : mesh_(mesh)
         , rank_(rank)
         , storage_(storage)
@@ -54,11 +54,12 @@ protected:
 private:
     Mesh& mesh_;
     MeshAttribRank rank_;
-    Storage storage_;
+    MeshAttribStorage storage_;
     Index size_;
 };
 
 using MeshAttribPtr = std::unique_ptr<MeshAttrib>;
+using MeshAttribMap = std::map<std::string, MeshAttribPtr>;
 
 ///
 ///
@@ -72,25 +73,25 @@ struct TypeToStorageConverter
 template <>
 struct TypeToStorageConverter<Real>
 {
-    static MeshAttrib::Storage value() { return MeshAttrib::Storage::Real; }
+    static MeshAttribStorage value() { return MeshAttribStorage::Real; }
 };
 
 template <>
 struct TypeToStorageConverter<Index>
 {
-    static MeshAttrib::Storage value() { return MeshAttrib::Storage::Index; }
+    static MeshAttribStorage value() { return MeshAttribStorage::Index; }
 };
 
 template <>
 struct TypeToStorageConverter<Vector2>
 {
-    static MeshAttrib::Storage value() { return MeshAttrib::Storage::Vector2; }
+    static MeshAttribStorage value() { return MeshAttribStorage::Vector2; }
 };
 
 template <>
 struct TypeToStorageConverter<Vector3>
 {
-    static MeshAttrib::Storage value() { return MeshAttrib::Storage::Vector3; }
+    static MeshAttribStorage value() { return MeshAttribStorage::Vector3; }
 };
 
 ///

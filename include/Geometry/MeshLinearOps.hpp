@@ -55,7 +55,8 @@ public:
 
             auto v01 = p0 - p1;
             auto v21 = p2 - p1;
-            
+
+            normal_attrib->Get(i) = normalize(cross(v01, v21));
         }
 
         return Status::Success;

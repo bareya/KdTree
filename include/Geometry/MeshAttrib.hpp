@@ -64,6 +64,57 @@ using MeshAttribMap = std::map<std::string, MeshAttribPtr>;
 ///
 ///
 ///
+class MeshRankAttribMap
+{
+public:
+    MeshRankAttribMap(Mesh& mesh)
+        : mesh_(mesh)
+    {
+        map_.emplace(MeshAttribRank::Point, MeshAttribMap());
+        map_.emplace(MeshAttribRank::Vertex, MeshAttribMap());
+        map_.emplace(MeshAttribRank::Polygon, MeshAttribMap());
+        map_.emplace(MeshAttribRank::Mesh, MeshAttribMap());
+    }
+
+    MeshRankAttribMap(const MeshRankAttribMap&) = delete;
+    MeshRankAttribMap(MeshRankAttribMap&&) = delete;
+
+    MeshAttribMap& GetAttribMap(MeshAttribRank rank) { return map_.at(rank); }
+    const MeshAttribMap& GetAttribMap(MeshAttribRank rank) const { return map_.at(rank); }
+
+    MeshAttrib* FindAttrib(const char* name, MeshAttribRank rank)
+    {
+        auto& attrib_map = GetAttribMap(rank);
+        auto attrib_it = attrib_map.find(name);
+        if (attrib_it == attrib_map.end()) { return nullptr; }
+        return attrib_it->second.get();
+    }
+
+    template <typename T, typename... _Types>
+    T* CreateAttrib(const char* name, MeshAttribRank rank, _Types&&... _Args)
+    {
+        auto& attrib_map = GetAttribMap(rank);
+        auto attrib_it = attrib_map.find(name);
+        if (attrib_it != attrib_map.end())
+        {
+            return dynamic_cast<T*>(attrib_it->second.get());
+        }
+
+        // create new
+        auto new_attrib = std::make_unique<T>(mesh_, rank, std::forward<_Types>(_Args)...);
+        auto new_attrib_ptr = new_attrib.get();
+        attrib_map.emplace(name, std::move(new_attrib));
+        return new_attrib_ptr;
+    }
+
+private:
+    Mesh& mesh_;
+    std::map<MeshAttribRank, MeshAttribMap> map_;
+};
+
+///
+///
+///
 
 template <typename T>
 struct TypeToStorageConverter
